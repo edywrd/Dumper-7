@@ -1,0 +1,36 @@
+name: build-dumper7
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release x64
+        run: msbuild .\Dumper-7.sln /p:Configuration=Release /p:Platform=x64 /m
+
+      - name: Collect artifact
+        shell: pwsh
+        run: |
+          $OutDir = "out"
+          New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+          Copy-Item -Recurse -Force ".\x64\Release\*.dll" $OutDir
+          if (Test-Path ".\x64\Release\*.pdb") { Copy-Item ".\x64\Release\*.pdb" $OutDir }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dumper-7-Release-x64
+          path: out/
+          if-no-files-found: error
